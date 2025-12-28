@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NeuraArt Neural Style Transfer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      background: radial-gradient(circle at top, #151531, #050515);
+      color: #f9fafb;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 1100px;
+      background: rgba(17, 24, 39, 0.9);
+      border-radius: 18px;
+      padding: 24px 24px 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      backdrop-filter: blur(14px);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(75, 85, 99, 0.7);
+      padding-bottom: 12px;
+    }
+
+    .title-block h1 {
+      font-size: 1.6rem;
+      letter-spacing: 0.03em;
+    }
+
+    .title-block p {
+      font-size: 0.9rem;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      border: 1px solid rgba(96, 165, 250, 0.5);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), rgba(15, 23, 42, 0.9));
+      color: #e5e7eb;
+      white-space: nowrap;
+    }
+
+    .content-layout {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 18px;
+    }
+
+    @media (max-width: 900px) {
+      .content-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      border-radius: 14px;
+      padding: 16px 16px 18px;
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.5));
+      border: 1px solid rgba(55, 65, 81, 0.9);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .panel-header h2 {
+      font-size: 1rem;
+      color: #e5e7eb;
+    }
+
+    .panel-header span {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
+    .upload-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 700px) {
+      .upload-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .upload-card {
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px dashed rgba(75, 85, 99, 0.9);
+      background: rgba(15, 23, 42, 0.8);
+      cursor: pointer;
+      transition: border 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-card:hover {
+      border-color: rgba(96, 165, 250, 0.8);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.9);
+    }
+
+    .upload-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+    }
+
+    .upload-label-title {
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .upload-label-subtitle {
+      font-size: 0.78rem;
+      color: #9ca3af;
+    }
+
+    .upload-pill {
+      margin-top: 4px;
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      background: rgba(31, 41, 55, 0.9);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      color: #d1d5db;
+    }
+
+    .hidden-input {
+      display: none;
+    }
+
+    .preview-wrapper {
+      margin-top: 8px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #020617;
+      height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .preview-wrapper img {
+      max-width: 100%;
+      max-height: 150px;
+      object-fit: contain;
+      display: none;
+    }
+
+    .preview-placeholder {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+
+    .file-name {
+      margin-top: 6px;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      text-align: center;
+      word-break: break-all;
+    }
+
+    .info-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    .chip {
+      padding: 4px 9px;
+      border-radius: 9999px;
+      border: 1px solid rgba(75, 85, 99, 0.8);
+      background: rgba(15, 23, 42, 0.9);
+      font-size: 0.75rem;
+    }
+
+    .generate-section {
+      margin-top: 16px;
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      background: radial-gradient(circle at right, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.9));
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .generate-main {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      border: none;
+      border-radius: 9999px;
+      padding: 9px 18px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: linear-gradient(135deg, #38bdf8, #6366f1);
+      color: #f9fafb;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 12px 25px rgba(37, 99, 235, 0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 18px 40px rgba(37, 99, 235, 0.6);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .status-text {
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    .status-text span {
+      color: #e5e7eb;
+      font-weight: 500;
+    }
+
+    .progress-bar {
+      position: relative;
+      margin-top: 6px;
+      height: 5px;
+      width: 160px;
+      border-radius: 9999px;
+      background: rgba(31, 41, 55, 0.9);
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-inner {
+      position: absolute;
+      left: -40%;
+      top: 0;
+      bottom: 0;
+      width: 40%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.2), rgba(59, 130, 246, 1), rgba(56, 189, 248, 0.2));
+      animation: slide 1s linear infinite;
+    }
+
+    @keyframes slide {
+      0% { left: -40%; }
+      100% { left: 100%; }
+    }
+
+    .output-panel {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .output-preview {
+      margin-top: 6px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #020617;
+      height: 260px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      position: relative;
+    }
+
+    .output-preview img {
+      max-width: 100%;
+      max-height: 260px;
+      object-fit: contain;
+      display: none;
+    }
+
+    .output-placeholder {
+      text-align: center;
+      padding: 0 18px;
+    }
+
+    .output-placeholder h3 {
+      font-size: 0.9rem;
+      margin-bottom: 3px;
+    }
+
+    .output-placeholder p {
+      font-size: 0.78rem;
+      color: #6b7280;
+    }
+
+    .helper-text {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      color: #9ca3af;
+    }
+
+    .helper-text strong {
+      color: #e5e7eb;
+    }
+
+    .footer {
+      margin-top: 14px;
+      font-size: 0.75rem;
+      color: #6b7280;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="header">
+      <div class="title-block">
+        <h1>Neural Style Transfer Studio</h1>
+        <p>Upload a content image and a style image to generate a stylized output.</p>
+      </div>
+      <div class="badge">neuraart · NST</div>
+    </header>
+
+    <main class="content-layout">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>1. Input Images</h2>
+          <span>Upload content + style</span>
+        </div>
+
+        <div class="upload-grid">
+          <label class="upload-card" id="contentCard">
+            <input id="contentInput" type="file" accept="image/*" class="hidden-input" />
+            <div class="upload-label">
+              <div class="upload-label-title">Style Image</div>
+              <div class="upload-label-subtitle">Art style or texture to transfer.</div>
+              <div class="upload-pill">Click to choose file</div>
+              <div class="preview-wrapper">
+                <img id="contentPreview" alt="Content preview" />
+                <div class="preview-placeholder">No image selected</div>
+              </div>
+              <div id="contentFileName" class="file-name"></div>
+            </div>
+          </label>
+
+          <label class="upload-card" id="styleCard">
+            <input id="styleInput" type="file" accept="image/*" class="hidden-input" />
+            <div class="upload-label">
+              <div class="upload-label-title">Content Image</div>
+              <div class="upload-label-subtitle">Main Image Person.</div>
+              <div class="upload-pill">Click to choose file</div>
+              <div class="preview-wrapper">
+                <img id="stylePreview" alt="Style preview" />
+                <div class="preview-placeholder">No image selected</div>
+              </div>
+              <div id="styleFileName" class="file-name"></div>
+            </div>
+          </label>
+        </div>
+
+        <div class="info-row">
+          <div class="chip">Recommended size ≤ 512×512</div>
+          <div class="chip">JPG · PNG · JPEG</div>
+          <span>Processed locally by your backend.</span>
+        </div>
+
+        <div class="generate-section">
+          <div class="generate-main">
+            <button id="generateBtn" class="btn-primary">
+              <span id="generateBtnLabel">Generate Stylized Image</span>
+            </button>
+            <div class="status-text" id="statusText">
+              Status: <span>Waiting for input</span>
+            </div>
+          </div>
+          <div>
+            <div class="progress-bar" id="progressBar">
+              <div class="progress-inner"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel output-panel">
+        <div class="panel-header">
+          <h2>2. Output Preview</h2>
+          <span>Stylized result</span>
+        </div>
+
+        <div class="output-preview">
+          <img id="outputImage" alt="Stylized output" />
+          <div class="output-placeholder" id="outputPlaceholder">
+            <h3>No result yet</h3>
+            <p>After uploading both images, click “Generate Stylized Image”.</p>
+          </div>
+        </div>
+
+        <p class="helper-text">
+          <strong>Tip:</strong> Try a portrait / landscape as content and a famous painting as style.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Frontend connected to Flask NST API.</span>
+      <span>neuraart · Neural Style Transfer</span>
+    </footer>
+  </div>
+
+  <script>
+    const contentInput = document.getElementById("contentInput");
+    const styleInput = document.getElementById("styleInput");
+    const contentPreview = document.getElementById("contentPreview");
+    const stylePreview = document.getElementById("stylePreview");
+    const contentFileName = document.getElementById("contentFileName");
+    const styleFileName = document.getElementById("styleFileName");
+    const generateBtn = document.getElementById("generateBtn");
+    const generateBtnLabel = document.getElementById("generateBtnLabel");
+    const statusText = document.getElementById("statusText").querySelector("span");
+    const progressBar = document.getElementById("progressBar");
+    const outputImage = document.getElementById("outputImage");
+    const outputPlaceholder = document.getElementById("outputPlaceholder");
+
+    function handleImageInput(inputEl, previewEl, fileNameEl) {
+      const file = inputEl.files[0];
+      if (!file) {
+        previewEl.style.display = "none";
+        if (fileNameEl) fileNameEl.textContent = "";
+        const placeholder = inputEl.parentElement.querySelector(".preview-placeholder");
+        if (placeholder) placeholder.style.display = "block";
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        previewEl.src = e.target.result;
+        previewEl.style.display = "block";
+        const placeholder = inputEl.parentElement.querySelector(".preview-placeholder");
+        if (placeholder) placeholder.style.display = "none";
+      };
+      reader.readAsDataURL(file);
+
+      if (fileNameEl) {
+        fileNameEl.textContent = file.name;
+      }
+    }
+
+    contentInput.addEventListener("change", () => {
+      handleImageInput(contentInput, contentPreview, contentFileName);
+      statusText.textContent = "Ready – please choose style image if not selected.";
+    });
+
+    styleInput.addEventListener("change", () => {
+      handleImageInput(styleInput, stylePreview, styleFileName);
+      statusText.textContent = "Ready – click Generate Stylized Image.";
+    });
+
+    function setLoading(isLoading) {
+      if (isLoading) {
+        generateBtn.disabled = true;
+        generateBtnLabel.textContent = "Generating...";
+        progressBar.style.display = "block";
+        statusText.textContent = "Running neural style transfer on server...";
+      } else {
+        generateBtn.disabled = false;
+        generateBtnLabel.textContent = "Generate Stylized Image";
+        progressBar.style.display = "none";
+      }
+    }
+
+    generateBtn.addEventListener("click", async () => {
+      if (!contentInput.files[0] || !styleInput.files[0]) {
+        alert("Please select both a content image and a style image.");
+        statusText.textContent = "Please provide both images.";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("content_image", contentInput.files[0]);
+      formData.append("style_image", styleInput.files[0]);
+
+      setLoading(true);
+      outputImage.style.display = "none";
+      outputPlaceholder.style.display = "block";
+
+      try {
+        const response = await fetch("/api/style-transfer", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Server error: " + response.status);
+        }
+
+        const data = await response.json();
+
+        if (!data.image_base64) {
+          throw new Error("No image_base64 in response");
+        }
+
+        outputImage.src = "data:image/png;base64," + data.image_base64;
+        outputImage.style.display = "block";
+        outputPlaceholder.style.display = "none";
+        statusText.textContent = "Done – stylized image generated.";
+      } catch (err) {
+        console.error(err);
+        statusText.textContent = "Error – see console.";
+        alert("Something went wrong while contacting the server: " + err.message);
+      } finally {
+        setLoading(false);
+      }
+    });
+  </script>
+</body>
+</html>
